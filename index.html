@@ -305,6 +305,26 @@ body.game-mode .view.on,body.game-mode .panel.on{animation:none}
   .jump{margin-left:-28px;margin-right:-28px;padding-left:28px;padding-right:28px}
   .shead h1{font-size:50px}
 }
+
+/* owner contact banner: fixed above everything, every page; the layout below is pushed down by its height (--bn-h) */
+.owner-banner{position:fixed;left:0;right:0;top:0;z-index:70;display:flex;align-items:center;justify-content:center;gap:12px;
+  padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));padding-top:calc(10px + env(safe-area-inset-top,0px));
+  background:var(--ink);color:var(--bg);box-shadow:0 3px 0 0 var(--accent)}
+.ob-tag{flex:none;font:700 10.5px/1 var(--fu);letter-spacing:.14em;text-transform:uppercase;background:var(--accent);color:var(--ink);padding:6px 8px;border-radius:5px}
+.ob-txt{min-width:0;max-width:720px;font-size:13.5px;line-height:1.4}
+.ob-txt a{color:inherit;font-weight:700;white-space:nowrap;border-bottom:2px solid var(--accent)}
+.ob-note{opacity:.75;white-space:nowrap}
+.ob-copy{flex:none;height:32px;padding:0 12px;border-radius:6px;background:var(--accent);color:var(--ink);font:700 11px/1 var(--fu);letter-spacing:.1em;text-transform:uppercase}
+@media (max-width:520px){.ob-tag{display:none}.ob-txt{font-size:12.5px}}
+body{padding-top:var(--bn-h,0px)}
+.topbar{top:var(--bn-h,0px)}
+.jump{top:calc(66px + var(--bn-h,0px))}
+.msec{scroll-margin-top:calc(130px + var(--bn-h,0px))}
+#pGame.on{top:var(--bn-h,0px)}
+.toast{top:calc(14px + var(--bn-h,0px))}
+.toast:not(.show){visibility:hidden;transition:translate .4s var(--spring),visibility 0s .4s}
+body.game-mode .fs-float{top:calc(12px + var(--bn-h,0px))}
+.sheet{max-height:calc(92vh - var(--bn-h,0px))}
 </style>
 </head>
 <body class="pick-mode">
@@ -9414,6 +9434,14 @@ const CONFIG = {
     fonts: { display: 'Fredoka', body: 'Nunito' }, // any Google Fonts family names
     currency: '$'
   },
+  // Contact banner shown at the top of every page. Set enabled: false to remove it.
+  notice: {
+    enabled: true,
+    tag: 'For the owner',
+    text: 'This rewards app is a working preview built for ' + 'Teahouse Express. To talk about launching it for your shop, please text',
+    phone: '954-459-6301',
+    note: '(text only, please, no calls)'
+  },
 
   // One entry per location. `board` = the live menu board's PeerJS id ('' = no board: static menu, NFC only).
   // `review` = Google "write a review" link: https://search.google.com/local/writereview?placeid=<Google place id>
@@ -10117,6 +10145,22 @@ function showSetup(){
     '<div class="row"><a class="btn primary press" href="#">Open the app</a></div>';
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-copy]'); if(!b) return; buzz(5); const t = b.dataset.copy; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('Copied'), () => toast('Select the link and copy it')); });
+
+/* ---------- owner contact banner ---------- */
+(function ownerBanner(){
+  const n = CONFIG.notice; if(!n || !n.enabled) return;
+  const el = document.createElement('div'); el.className = 'owner-banner'; el.setAttribute('role', 'note');
+  el.innerHTML = (n.tag ? '<span class="ob-tag">' + esc(n.tag) + '</span>' : '') +
+    '<p class="ob-txt">' + esc(String(n.text).replace('{business}', B.name)) + ' <a href="sms:+1' + String(n.phone).replace(/\D/g, '') + '">' + esc(n.phone) + '</a> <span class="ob-note">' + esc(n.note || '') + '</span></p>' +
+    '<button class="ob-copy press" type="button">Copy</button>';
+  document.body.prepend(el);
+  el.querySelector('.ob-copy').addEventListener('click', e => {
+    const b = e.currentTarget;
+    (navigator.clipboard ? navigator.clipboard.writeText(n.phone) : Promise.reject()).then(() => { b.textContent = 'Copied'; toast('Number copied: ' + n.phone); setTimeout(() => { b.textContent = 'Copy'; }, 2000); }, () => toast('Text ' + n.phone));
+  });
+  const set = () => document.documentElement.style.setProperty('--bn-h', el.offsetHeight + 'px');
+  set(); if(window.ResizeObserver) new ResizeObserver(set).observe(el); else addEventListener('resize', set);
+})();
 
 /* ---------- boot ---------- */
 paintIcons(); renderStorage(); renderPrefs(); renderPicker(); renderFs();
